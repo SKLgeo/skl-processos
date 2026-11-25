@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; font-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'">
+  <meta name="theme-color" content="#1F4D2E">
+  <title>SKL Processos</title>
+  <link rel="icon" href="icone.png">
+  <link rel="apple-touch-icon" href="icone.png">
+  <link rel="manifest" href="manifest.webmanifest">
+  <link rel="stylesheet" href="styles.css">
+  <link rel="stylesheet" href="telas.css">
+</head>
+<body>
+  <!-- ENTRADA -->
+  <section id="loginView" class="login-view">
+    <div class="login-marca">
+      <img src="icone.png" alt="" class="login-icone">
+      <h1>SKL Processos</h1>
+      <p>Gestão de processos de agrimensura, regularização fundiária e meio ambiente — no campo e na cidade.</p>
+      <ul class="login-lista">
+        <li>Onde está cada processo e quem precisa agir</li>
+        <li>Protocolos, exigências, licenças e assinaturas em dia</li>
+        <li>A receber, custas e notas do escritório</li>
+      </ul>
+    </div>
+    <div class="login-lado">
+      <form id="loginForm" class="login-form" autocomplete="on">
+        <h2>Entrar</h2>
+        <label>E-mail<input id="loginEmail" type="email" required autocomplete="username"></label>
+        <label>Senha
+          <span class="senha-campo">
+            <input id="loginSenha" type="password" required autocomplete="current-password">
+            <button type="button" id="loginVerSenha" class="link-botao" aria-label="Mostrar senha">Mostrar</button>
+          </span>
+        </label>
+        <button type="submit" class="botao-principal" id="loginEntrar">Entrar</button>
+        <button type="button" class="link-botao" id="loginEsqueci">Esqueci minha senha</button>
+        <p id="loginErro" class="erro" hidden></p>
+        <p id="loginAviso" class="ajuda" hidden></p>
+      </form>
+      <form id="novaSenhaForm" class="login-form" hidden>
+        <h2>Defina sua nova senha</h2>
+        <label>Nova senha<input id="novaSenha1" type="password" minlength="6" required autocomplete="new-password"></label>
+        <label>Repita a nova senha<input id="novaSenha2" type="password" minlength="6" required autocomplete="new-password"></label>
+        <button type="submit" class="botao-principal">Salvar nova senha</button>
+        <p id="novaSenhaErro" class="erro" hidden></p>
+      </form>
+      <p class="rodape-login">SKL Soluções Digitais · <span id="versaoLogin"></span></p>
+    </div>
+  </section>
+
+  <!-- ESCOLHA DO ESCRITÓRIO -->
+  <section id="escolhaView" class="escolha-view" hidden>
+    <div class="cartao escolha-cartao">
+      <h2>Escolha o escritório</h2>
+      <div id="escolhaLista" class="escolha-lista"></div>
+      <button type="button" class="link-botao" data-acao="sair">Sair</button>
+    </div>
+  </section>
+
+  <!-- SISTEMA -->
+  <section id="appView" class="app-view" hidden>
+    <aside class="lateral">
+      <div class="lateral-marca">
+        <img src="icone.png" alt="">
+        <div><strong>SKL Processos</strong><span id="nomeEscritorio"></span></div>
+      </div>
+      <nav id="menu" class="menu"></nav>
+      <div class="lateral-pe">
+        <span id="nomeUsuario"></span>
+        <button type="button" class="link-botao claro" data-acao="trocar" id="botaoTrocar" hidden>Trocar escritório</button>
+        <button type="button" class="link-botao claro" data-acao="sair">Sair</button>
+        <small id="versaoApp"></small>
+      </div>
+    </aside>
+    <main class="conteudo">
+      <header class="topo">
+        <h1 id="tituloPagina">Hoje</h1>
+        <span id="statusConexao" class="conexao" title="Atualização em tempo real"></span>
+        <button type="button" class="busca-botao" id="buscaBotao" title="Buscar (Ctrl+K)">Buscar processo, imóvel, pessoa, matrícula…</button>
+      </header>
+      <div id="paginas"></div>
+    </main>
+  </section>
+
+  <div id="toast" class="toast" hidden></div>
+
+  <script src="config.js"></script>
+  <script src="vendor/supabase/supabase.js"></script>
+  <script src="app.js"></script>
+  <script src="hoje.js"></script>
+  <script src="processos.js"></script>
+  <script src="cadastros.js"></script>
+  <script src="agenda.js"></script>
+  <script src="financeiro.js"></script>
+  <script src="configuracoes.js"></script>
+  <script src="tutoriais.js"></script>
+  <script src="busca.js"></script>
+  <script src="inicio.js"></script>
+</body>
+</html>

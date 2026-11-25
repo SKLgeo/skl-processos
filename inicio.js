@@ -1,0 +1,1 @@
+window.SKLProc.iniciar();

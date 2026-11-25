@@ -1,0 +1,13 @@
+{
+  "name": "SKL Processos",
+  "short_name": "SKL Processos",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#1F4D2E",
+  "theme_color": "#1F4D2E",
+  "icons": [
+    { "src": "icone.png", "sizes": "256x256", "type": "image/png" },
+    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png" }
+  ]
+}
