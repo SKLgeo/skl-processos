@@ -54,12 +54,6 @@
       "Quem esquecer a senha usa \"Esqueci minha senha\" na tela de entrada. O administrador também pode usar \"nova senha\" na lista da equipe.",
       "Tudo que um computador altera aparece nos outros na hora (bolinha verde no topo = conectado).",
     ] },
-    { t: "Marca do escritório (nome, logo e cores)", p: [
-      "Configurações → Escritório → Marca do escritório. Só o administrador altera.",
-      "Escreva o nome que deve aparecer, toque em \"Escolher logo\" (PNG com fundo transparente fica melhor) e escolha a cor principal e a cor de destaque. O quadro ao lado mostra como vai ficar.",
-      "Toque em \"Salvar marca\". O nome, a logo e as cores passam a aparecer na tela de todos, no e-mail do dia e nos alertas do celular. Quem estiver com o sistema aberto vê a marca nova ao entrar de novo.",
-      "Prefira uma cor principal escura: o texto do menu e dos botões é branco.",
-    ] },
     { t: "Avisos no celular", p: [
       "Ligue os avisos em cada aparelho que você usa: Configurações → Avisos → \"Ativar avisos neste aparelho\" e permita as notificações. Depois toque em \"Enviar um aviso de teste\": em até 1 minuto o alerta aparece.",
       "No iPhone, primeiro adicione o link à tela de início (Safari → Compartilhar → Adicionar à Tela de Início) e abra o sistema por esse ícone.",

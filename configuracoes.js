@@ -23,8 +23,7 @@
     return `<div class="cartao"><h3>Dados do escritório</h3>
       <div class="ficha-info"><div><span>Nome</span>${esc(e.nome)}</div><div><span>CNPJ</span>${esc(e.cnpj || "—")}</div><div><span>Cidade</span>${esc([ e.cidade, e.uf ].filter(Boolean).join("/") || "—")}</div>
       <div><span>Processo parado depois de</span>${P.limiteParado()} dias sem movimento</div></div>
-      ${pode ? `<div class="acoes"><button type="button" class="botao" data-a="editarEsc">Editar</button></div>` : ""}</div>
-      <div id="cfgMarca"></div>`;
+      ${pode ? `<div class="acoes"><button type="button" class="botao" data-a="editarEsc">Editar</button></div>` : ""}</div>`;
   }
   function equipe() {
     const pode = P.pode("configurar"); const eu = P.estado.usuario.id;
@@ -147,7 +146,6 @@
     el.innerHTML = `<div class="abas">${abas.map(([ k, t ]) => `<button type="button" data-aba="${k}" class="${k === aba ? "ativo" : ""}">${t}</button>`).join("")}</div>
       <div id="cfgCorpo">${aba === "avisos" ? "" : { computador, escritorio, equipe, modelos, contas }[aba]()}</div>`;
     if (aba === "avisos") { P.renderConfigAvisos(el.querySelector("#cfgCorpo")); }
-    if (aba === "escritorio") { P.renderConfigMarca(el.querySelector("#cfgMarca")); }
     el.onclick = async (e) => {
       const t = e.target.closest("[data-aba]"); if (t) { aba = t.dataset.aba; render(el); return; }
       if (aba === "avisos") return; // a aba Avisos trata os próprios cliques

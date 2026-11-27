@@ -197,20 +197,5 @@ button.numero:hover { border-color: var(--dourado); box-shadow: 0 2px 8px rgba(3
 .pequeno-link { font-size: 13px; font-weight: 400; }
 details summary { cursor: pointer; color: var(--mata); font-weight: 600; margin-top: 8px; }
 
-/* marca do escritório (Configurações → Escritório) */
-.marca-grade:not([hidden]) { display: grid; grid-template-columns: minmax(0, 1fr) minmax(220px, 320px); gap: 18px; align-items: start; margin-top: 8px; }
-.marca-campos label { display: block; font-size: 13.5px; color: var(--texto-suave); margin-bottom: 10px; }
-.marca-campos label input[type=text] { margin-top: 4px; }
-.marca-logo-linha:not([hidden]) { display: flex; align-items: center; gap: 12px; margin: 4px 0; }
-.marca-logo-linha .botao { margin: 0; color: var(--mata); font-size: 14px; }
-.marca-logo-mini { width: 56px; height: 56px; object-fit: contain; border: 1px solid var(--borda); border-radius: 10px; background: #fff; padding: 4px; }
-.marca-cores:not([hidden]) { display: flex; gap: 18px; flex-wrap: wrap; }
-.marca-cores input[type=color] { display: block; width: 72px; height: 38px; margin-top: 4px; border: 1px solid var(--borda); border-radius: 8px; background: #fff; padding: 2px; cursor: pointer; }
-.marca-previa { --p1: #1f4d2e; --p2: #d9a21b; border: 1px solid var(--borda); border-radius: 12px; overflow: hidden; background: var(--creme); }
-.marca-previa-lateral:not([hidden]) { display: flex; align-items: center; gap: 10px; padding: 14px; background: var(--p1); color: #fff; border-bottom: 3px solid var(--p2); }
-.marca-previa-lateral img { width: 38px; height: 38px; object-fit: contain; border-radius: 9px; background: rgba(255,255,255,.12); }
-.marca-previa-corpo:not([hidden]) { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 18px 14px; }
-.marca-previa-botao { background: var(--p1); color: #fff; padding: 7px 14px; border-radius: 8px; font-weight: 600; font-size: 14px; }
-.marca-previa-titulo { color: var(--p1); font-weight: 700; border-bottom: 2px solid var(--p2); }
+/* marca do escritório: o logo do cliente não é deformado */
 .lateral-marca img, .login-icone { object-fit: contain; }
-@media (max-width: 760px) { .marca-grade:not([hidden]) { grid-template-columns: minmax(0, 1fr); } }
