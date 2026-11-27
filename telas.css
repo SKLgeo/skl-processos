@@ -199,3 +199,6 @@ details summary { cursor: pointer; color: var(--mata); font-weight: 600; margin-
 
 /* marca do escritório: o logo do cliente não é deformado */
 .lateral-marca img, .login-icone { object-fit: contain; }
+/* caixas de marcar dentro dos formulários (pessoas do setor, avisos): caixa ao lado do texto */
+.form-campos label.check { flex-direction: row; align-items: center; gap: 7px; font-weight: 400; color: var(--texto); }
+.form-campos label.check input { margin: 0; }

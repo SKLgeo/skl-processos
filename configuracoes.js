@@ -92,7 +92,7 @@
             Object.assign(P.estado.escritorio, data); P.$("nomeEscritorio").textContent = data.nome;
           } }).then(() => P.redesenhar());
       }
-      case "novoMembro": return P.form({ titulo: "Criar acesso", subtitulo: "Se o e-mail já tiver conta (de outro sistema da SKL), ela é aproveitada e a pessoa entra com a senha que já usa.", campos: [
+      case "novoMembro": return P.form({ titulo: "Criar acesso", subtitulo: "Se o e-mail já tiver conta (de outro sistema), ela é aproveitada e a pessoa entra com a senha que já usa.", campos: [
         { id: "nome", rotulo: "Nome", obrig: true }, { id: "email", rotulo: "E-mail", tipo: "email", obrig: true },
         { id: "papel", rotulo: "Tipo de acesso", tipo: "select", opcoes: P.opcoes(P.R.papel), vazio: false },
         { id: "senha", rotulo: "Senha inicial (mín. 6)", ajuda: "Combine com a pessoa trocar depois em \"Esqueci minha senha\"." } ],
