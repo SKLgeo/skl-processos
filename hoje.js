@@ -38,6 +38,7 @@
   P.linhaProjeto = (proj) => proj ? `${P.selo(proj.codigo || "")}${esc(proj.titulo)}` : "";
 
   let soMeus = P.lerLocal("skl_proc_hoje_meus") === "1";
+  let soAtrasadas = false;
 
   function render(el) {
     const D = P.dados; const h = P.hojeISO(); const sem = P.somarDias(h, 7); const eu = P.estado.usuario.id;
@@ -45,7 +46,7 @@
     const meu = (uid) => !soMeus || uid === eu;
     const pend = (D.pendencias || []).filter((p) => p.situacao === "aberta" && ativos.has(p.projeto_id));
     const atrasadas = pend.filter((p) => !p.conferir_em || p.conferir_em < h || (p.prazo && p.prazo < h));
-    const lista = pend.filter((p) => meu(p.acompanha_id) && (!p.conferir_em || p.conferir_em <= sem || (p.prazo && p.prazo <= sem)))
+    const lista = (soAtrasadas ? atrasadas : pend).filter((p) => meu(p.acompanha_id) && (!p.conferir_em || p.conferir_em <= sem || (p.prazo && p.prazo <= sem)))
       .sort((a, b) => (a.conferir_em || "0") .localeCompare(b.conferir_em || "0"));
     const protAtivos = new Map((D.protocolos || []).map((p) => [ p.id, p ]));
     const exig = (D.exigencias || []).filter((x) => x.situacao === "aberta").sort((a, b) => (a.prazo || "9").localeCompare(b.prazo || "9"));
@@ -85,27 +86,42 @@
     const itemParado = ({ p, dias }) => `<li data-projeto="${p.id}" class="clicavel"><div><div class="titulo">${P.linhaProjeto(p)}</div>
         <div class="sub">Responsável: ${esc(P.nomeUsuario(p.responsavel_id))} · cliente ${esc(P.clienteDe(p)?.nome || "—")}</div></div>
         <div class="quando atrasado">sem movimento há ${dias} dias</div></li>`;
-    const bloco = (titulo, itens, fn, vazio) => `<div class="cartao"><h2>${titulo} ${itens.length ? `<span class="contador">${itens.length}</span>` : ""}</h2>
+    const bloco = (titulo, itens, fn, vazio, id, extra = "") => `<div class="cartao" ${id ? `id="${id}"` : ""}><h2>${titulo} ${itens.length ? `<span class="contador">${itens.length}</span>` : ""}${extra}</h2>
       ${itens.length ? `<ul class="lista-itens">${itens.map(fn).join("")}</ul>` : P.vazio(vazio)}</div>`;
 
     el.innerHTML = `
       <div class="barra-filtros"><label class="check"><input type="checkbox" id="hojeMeus" ${soMeus ? "checked" : ""}> Só o que eu acompanho</label>
         ${P.pode("editar_processos") ? `<span class="espaco"></span><button type="button" class="botao-principal" id="hojeNovo">+ Novo processo</button>` : ""}</div>
       <div class="numeros">
-        <div class="numero"><span>Projetos ativos</span><strong>${ativos.size}</strong></div>
-        <div class="numero"><span>Serviços em andamento</span><strong>${servAnd}</strong></div>
-        <div class="numero ${atrasadas.length ? "alerta" : ""}"><span>Pendências · atrasadas ou sem data</span><strong>${pend.length} · ${atrasadas.length}</strong></div>
-        <div class="numero ${exig.length ? "alerta" : ""}"><span>Exigências em aberto</span><strong>${exig.length}</strong></div>
-        ${P.pode("ver_financeiro") ? `<div class="numero ${vencido ? "alerta" : ""}"><span>A receber vencido</span><strong>${esc(P.moeda(vencido))}</strong></div>` : ""}
+        <button type="button" class="numero" data-ir="ativos"><span>Projetos ativos</span><strong>${ativos.size}</strong></button>
+        <button type="button" class="numero" data-ir="quadro"><span>Serviços em andamento</span><strong>${servAnd}</strong></button>
+        <button type="button" class="numero" data-ir="pend"><span>Pendências abertas</span><strong>${pend.length}</strong></button>
+        <button type="button" class="numero ${atrasadas.length ? "alerta" : ""}" data-ir="atrasadas"><span>Atrasadas ou sem data</span><strong>${atrasadas.length}</strong></button>
+        <button type="button" class="numero ${exig.length ? "alerta" : ""}" data-ir="exig"><span>Exigências em aberto</span><strong>${exig.length}</strong></button>
+        ${P.pode("ver_financeiro") ? `<button type="button" class="numero ${vencido ? "alerta" : ""}" data-ir="receber"><span>A receber vencido</span><strong>${esc(P.moeda(vencido))}</strong></button>` : ""}
       </div>
-      ${bloco("Precisa de atenção (próximos 7 dias)", lista, itemPend, "Nada para conferir nos próximos 7 dias.")}
-      ${bloco("Exigências em aberto", exig, itemExig, "Nenhuma exigência aberta.")}
+      ${bloco(soAtrasadas ? "Atrasadas ou sem data" : "Precisa de atenção (próximos 7 dias)", lista, itemPend,
+        soAtrasadas ? "Nenhuma pendência atrasada." : "Nada para conferir nos próximos 7 dias.", "hojePend",
+        soAtrasadas ? ` <button type="button" class="link-botao pequeno-link" data-ir="tudo">mostrar tudo ✕</button>` : "")}
+      ${bloco("Exigências em aberto", exig, itemExig, "Nenhuma exigência aberta.", "hojeExig")}
       ${bloco("Agenda dos próximos 7 dias", comp, itemComp, "Nenhum compromisso agendado.")}
       ${vencendo.length ? bloco("Licenças e documentos vencendo (90 dias)", vencendo, itemVence, "") : ""}
       ${bloco(`Processos parados (${P.limiteParado()} dias ou mais sem movimento)`, parados, itemParado, "Nenhum processo parado.")}`;
     el.querySelector("#hojeMeus").onchange = (e) => { soMeus = e.target.checked; P.gravarLocal("skl_proc_hoje_meus", soMeus ? "1" : ""); render(el); };
     el.querySelector("#hojeNovo")?.addEventListener("click", () => P.novoProjeto());
-    el.onclick = (e) => { const li = e.target.closest("[data-projeto]"); if (li?.dataset.projeto) P.abrirProjeto(li.dataset.projeto, li.dataset.aba); };
+    el.onclick = (e) => {
+      const ir = e.target.closest("[data-ir]")?.dataset.ir;
+      if (ir) {
+        const rolar = (id) => el.querySelector("#" + id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+        if (ir === "ativos") return P.abrirProcessosCom({ situacao: "ativo", visao: "lista" });
+        if (ir === "quadro") return P.abrirProcessosCom({ situacao: "ativo", visao: "quadro" });
+        if (ir === "pend" || ir === "tudo") { soAtrasadas = false; render(el); return rolar("hojePend"); }
+        if (ir === "atrasadas") { soAtrasadas = true; render(el); return rolar("hojePend"); }
+        if (ir === "exig") return rolar("hojeExig");
+        if (ir === "receber") return P.abrirFinanceiro("vencidas");
+      }
+      const li = e.target.closest("[data-projeto]"); if (li?.dataset.projeto) P.abrirProjeto(li.dataset.projeto, li.dataset.aba);
+    };
   }
   P.pagina("hoje", { titulo: "Hoje", render });
 })();

@@ -4,6 +4,16 @@
   const P = window.SKLProc; const { esc } = P;
   const filtro = { busca: "", situacao: "ativo", area: "", tipoImovel: "", meus: false, visao: P.lerLocal("skl_proc_visao") || "lista" };
   const abaPadrao = () => P.lerLocal("skl_proc_aba") || "servicos";
+  P.abrirProcessosCom = (opcoes) => { Object.assign(filtro, { busca: "", area: "", tipoImovel: "", meus: false }, opcoes); P.ir("processos"); };
+
+  // imóveis do cliente escolhido primeiro (no "Novo processo"), com "Mostrar todos…"
+  const imoveisDoCliente = (cli, todos) => {
+    const novo = [ [ "__novo", "+ Cadastrar novo imóvel…" ] ];
+    if (!cli || cli === "__nova" || todos) return [ ...novo, ...P.opImoveis() ];
+    const ids = new Set((P.dados.imovel_pessoas || []).filter((x) => x.pessoa_id === cli).map((x) => x.imovel_id));
+    const meus = P.opImoveis().filter(([ id ]) => ids.has(id));
+    return [ ...novo, ...meus, [ "__todos", meus.length ? "Mostrar todos os imóveis…" : "Este cliente ainda não tem imóvel · mostrar todos…" ] ];
+  };
 
   // ======================= LISTA / QUADRO =======================
   function projetosFiltrados() {
@@ -125,7 +135,8 @@
   const camposProjeto = (novo) => [
     { id: "titulo", rotulo: "Título do processo", obrig: true, largura: "inteira", placeholder: "Ex.: Fazenda Boa Vista — Georreferenciamento" },
     { id: "cliente_id", rotulo: "Cliente (contratante)", tipo: "select", opcoes: () => [ [ "__nova", "+ Cadastrar nova pessoa…" ], ...P.opPessoas() ] },
-    ...(novo ? [ { id: "imovel_id", rotulo: "Imóvel", tipo: "select", opcoes: () => [ [ "__novo", "+ Cadastrar novo imóvel…" ], ...P.opImoveis() ] } ] : []),
+    ...(novo ? [ { id: "imovel_id", rotulo: "Imóvel", tipo: "select", dependeDe: "cliente_id", opcoesPor: imoveisDoCliente,
+      ajuda: "Aparecem os imóveis do cliente escolhido; para outro, use \"Mostrar todos…\"." } ] : []),
     { id: "responsavel_id", rotulo: "Responsável", tipo: "select", opcoes: P.opEquipe },
     ...(novo ? [ { id: "modelo_id", rotulo: "Primeiro serviço (modelo de etapas)", tipo: "select", opcoes: opModelos, vazio: "Nenhum por enquanto" } ] : []),
     ...(!novo ? [ { id: "situacao", rotulo: "Situação", tipo: "select", opcoes: P.opcoes(P.R.sitProjeto), vazio: false } ] : []),
@@ -138,7 +149,12 @@
   ];
   async function resolverNovos(v) {
     if (v.cliente_id === "__nova") { const p = await P.novaPessoa(); if (!p) throw new Error("Cadastre o cliente ou escolha outro."); v.cliente_id = p.id; }
-    if (v.imovel_id === "__novo") { const i = await P.novoImovel(); if (!i) throw new Error("Cadastre o imóvel ou escolha outro."); v.imovel_id = i.id; }
+    if (v.imovel_id === "__novo") {
+      const i = await P.novoImovel(); if (!i) throw new Error("Cadastre o imóvel ou escolha outro."); v.imovel_id = i.id;
+      // imóvel cadastrado aqui já fica no nome do cliente (senão some da lista "imóveis do cliente")
+      if (v.cliente_id) await P.salvar("imovel_pessoas", { imovel_id: i.id, pessoa_id: v.cliente_id, papel: "proprietario" });
+    }
+    if (v.imovel_id === "__todos") v.imovel_id = null;
   }
   P.novoProjeto = async (pre = {}) => {
     const r = await P.form({
@@ -258,13 +274,19 @@
   }
 
   // ---------- serviços e etapas ----------
-  function formServico(p, s) {
+  async function formServico(p, s) {
     const novo = !s;
+    const av = await P.avisosIniciais("servicos", s?.id, "vence");
     const campos = [
       ...(novo ? [ { id: "modelo_id", rotulo: "Modelo de etapas", tipo: "select", opcoes: opModelos, vazio: "Sem modelo (etapas à mão)" } ] : []),
       { id: "titulo", rotulo: "Nome do serviço", obrig: !novo, ajuda: novo ? "Em branco = nome do modelo" : "" },
       { id: "tipo", rotulo: "Tipo", tipo: "select", opcoes: P.opcoes(P.R.tipoServico), vazio: novo ? "Do modelo" : false },
-      { id: "imovel_id", rotulo: "Imóvel", tipo: "select", opcoes: () => { const im = P.imoveisDoProjeto(p.id); return (im.length ? im : P.dados.imoveis || []).map((i) => [ i.id, i.denominacao ]); } },
+      { id: "imovel_id", rotulo: "Imóvel", tipo: "select", opcoes: () => {
+        let im = P.imoveisDoProjeto(p.id);
+        if (!im.length) { const ids = new Set((P.dados.imovel_pessoas || []).filter((x) => x.pessoa_id === p.cliente_id).map((x) => x.imovel_id)); im = (P.dados.imoveis || []).filter((i) => ids.has(i.id)); }
+        if (!im.length) im = P.dados.imoveis || [];
+        return im.map((i) => [ i.id, i.denominacao ]);
+      } },
       { id: "responsavel_id", rotulo: "Responsável", tipo: "select", opcoes: P.opEquipe },
       { id: "situacao", rotulo: "Situação", tipo: "select", opcoes: P.opcoes(P.R.sitServico), vazio: false },
       { id: "proxima_acao", rotulo: "Próxima ação", largura: "inteira" },
@@ -274,22 +296,30 @@
       { tipo: "titulo", rotulo: "Documento emitido (licença, outorga, recibo, certificação…)" },
       { id: "documento_emitido", rotulo: "Número / descrição", placeholder: "Ex.: LO nº 1122/2025" },
       { id: "vence_em", rotulo: "Vence em", tipo: "date", ajuda: "Aparece no Hoje 90 dias antes de vencer." },
+      P.campoAvisos("vence", "Avisar no celular antes de vencer"),
       { id: "observacoes", rotulo: "Observações", tipo: "textarea" },
     ];
+    const avisarVencimento = (r) => P.salvarAvisos({ tabela: "servicos", registroId: r.id, tipo: "vence", base: r.vence_em, valor: r._avisos,
+      usuarioId: r.responsavel_id || p.responsavel_id, titulo: "Vencimento: " + (r.documento_emitido || r.titulo),
+      corpo: `${p.codigo} · ${p.titulo} — vence em ${P.dataBR(r.vence_em)}` });
     const imPadrao = P.imoveisDoProjeto(p.id)[0]?.id;
     return P.form({
       titulo: novo ? "Novo serviço" : "Editar serviço", subtitulo: p.codigo + " · " + p.titulo, campos,
-      valores: s || { situacao: "nao_iniciado", responsavel_id: p.responsavel_id || P.estado.usuario.id, imovel_id: imPadrao },
+      valores: { ...(s || { situacao: "nao_iniciado", responsavel_id: p.responsavel_id || P.estado.usuario.id, imovel_id: imPadrao }), _avisos: av },
       aoSalvar: async (v) => {
+        const { _avisos, ...d } = v;
         if (novo) {
-          const { data, error } = await P.sb.rpc("proc_abrir_servico", { p_projeto: p.id, p_dados: v });
+          const { data, error } = await P.sb.rpc("proc_abrir_servico", { p_projeto: p.id, p_dados: d });
           if (error) throw new Error(P.msgErro(error));
-          if (v.documento_emitido || v.vence_em || v.observacoes) await P.salvar("servicos", { id: data.id, documento_emitido: v.documento_emitido, vence_em: v.vence_em, observacoes: v.observacoes }, { recarregar: false });
+          if (d.documento_emitido || d.vence_em || d.observacoes) await P.salvar("servicos", { id: data.id, documento_emitido: d.documento_emitido, vence_em: d.vence_em, observacoes: d.observacoes }, { recarregar: false });
           await P.carregar([ "servicos", "servico_etapas" ]);
+          await avisarVencimento({ ...data, ...d, id: data.id, _avisos });
           return data;
         }
-        if (v.situacao === "concluido" && !v.concluido_em) v.concluido_em = P.hojeISO();
-        return P.salvar("servicos", { ...v, id: s.id, version: s.version });
+        if (d.situacao === "concluido" && !d.concluido_em) d.concluido_em = P.hojeISO();
+        const r = await P.salvar("servicos", { ...d, id: s.id, version: s.version });
+        await avisarVencimento({ ...r, _avisos });
+        return r;
       },
       aoExcluir: !novo && P.estado.perm.papel === "administrador" ? () => P.excluir("servicos", s.id) : null, excluirTexto: "Excluir serviço",
     }).then(() => P.redesenhar());
@@ -336,8 +366,10 @@
       }
     }
   }
-  function formEtapa(servicoId, e) {
+  async function formEtapa(servicoId, e) {
     const servEt = P.etapasDoServico(servicoId);
+    const av = await P.avisosIniciais("servico_etapas", e?.id, "dia");
+    const sv = P.porId("servicos", servicoId); const pj = P.porId("projetos", sv?.projeto_id);
     return P.form({
       titulo: e ? "Editar etapa" : "Nova etapa", campos: [
         { id: "nome", rotulo: "Nome da etapa", obrig: true },
@@ -345,22 +377,29 @@
         { id: "situacao", rotulo: "Situação", tipo: "select", opcoes: P.opcoes(P.R.sitEtapa), vazio: false },
         { id: "prazo", rotulo: "Prazo", tipo: "date" },
         { id: "lista", rotulo: "Checklist (um item por linha)", tipo: "textarea", linhas: 5 },
+        P.campoAvisos("dia", "Avisar no celular (pelo prazo da etapa)"),
       ],
-      valores: e ? { ...e, lista: (e.checklist || []).map((c) => c.texto).join("\n") } : { ordem: (servEt.at(-1)?.ordem || 0) + 1, situacao: "pendente" },
+      valores: { ...(e ? { ...e, lista: (e.checklist || []).map((c) => c.texto).join("\n") } : { ordem: (servEt.at(-1)?.ordem || 0) + 1, situacao: "pendente" }), _avisos: av },
       aoSalvar: async (v) => {
+        const _avisos = v._avisos;
         const antigos = new Map((e?.checklist || []).map((c) => [ c.texto, c ]));
         const checklist = String(v.lista || "").split("\n").map((t) => t.trim()).filter(Boolean).map((t) => antigos.get(t) || { texto: t, feito: false });
         const dados = { nome: v.nome, ordem: v.ordem || 1, situacao: v.situacao, prazo: v.prazo, checklist,
           concluida_em: v.situacao === "concluida" ? (e?.concluida_em || P.hojeISO()) : null };
-        if (e) return salvarEtapa(e, dados);
-        return P.salvar("servico_etapas", { servico_id: servicoId, ...dados });
+        let id = e?.id;
+        if (e) await salvarEtapa(e, dados);
+        else id = (await P.salvar("servico_etapas", { servico_id: servicoId, ...dados })).id;
+        if (![ "concluida", "nao_aplica" ].includes(dados.situacao)) await P.salvarAvisos({ tabela: "servico_etapas", registroId: id, tipo: "dia", base: dados.prazo,
+          valor: _avisos, usuarioId: sv?.responsavel_id || pj?.responsavel_id, titulo: "Etapa: " + dados.nome, corpo: `${pj?.codigo || ""} · ${sv?.titulo || ""} — prazo ${P.dataBR(dados.prazo)}` });
+        return { id };
       },
       aoExcluir: e ? () => P.excluir("servico_etapas", e.id, [ "servico_etapas" ]) : null, excluirTexto: "Excluir etapa",
     }).then(() => P.redesenhar());
   }
 
   // ---------- pendências ----------
-  function formPendencia(p, x) {
+  async function formPendencia(p, x) {
+    const av = await P.avisosIniciais("pendencias", x?.id, "dia");
     return P.form({
       titulo: x ? "Editar pendência" : "Nova pendência", subtitulo: "Quem precisa agir, quem acompanha e quando conferir de novo.", campos: [
         { id: "descricao", rotulo: "O que precisa acontecer", obrig: true, largura: "inteira" },
@@ -372,12 +411,17 @@
         { id: "conferir_em", rotulo: "Conferir de novo em", tipo: "date", obrig: true },
         { id: "prazo", rotulo: "Prazo final (se houver)", tipo: "date" },
         ...(x ? [ { id: "situacao", rotulo: "Situação", tipo: "select", opcoes: [ [ "aberta", "Aberta" ], [ "resolvida", "Resolvida" ], [ "cancelada", "Cancelada" ] ], vazio: false } ] : []),
+        P.campoAvisos("dia", "Avisar no celular (pela data de conferir)"),
       ],
-      valores: x || { quem_age: "escritorio", acompanha_id: P.estado.usuario.id, conferir_em: P.somarDias(P.hojeISO(), 3) },
+      valores: { ...(x || { quem_age: "escritorio", acompanha_id: P.estado.usuario.id, conferir_em: P.somarDias(P.hojeISO(), 3) }), _avisos: av },
       aoSalvar: async (v) => {
-        if (v.quem_age_pessoa_id === "__nova") { const pe = await P.novaPessoa(); v.quem_age_pessoa_id = pe?.id || null; }
-        if (v.situacao === "resolvida" && !x?.resolvida_em) v.resolvida_em = P.hojeISO();
-        return P.salvar("pendencias", { ...v, projeto_id: p.id, id: x?.id, version: x?.version });
+        const { _avisos, ...d } = v;
+        if (d.quem_age_pessoa_id === "__nova") { const pe = await P.novaPessoa(); d.quem_age_pessoa_id = pe?.id || null; }
+        if (d.situacao === "resolvida" && !x?.resolvida_em) d.resolvida_em = P.hojeISO();
+        const r = await P.salvar("pendencias", { ...d, projeto_id: p.id, id: x?.id, version: x?.version });
+        if (r.situacao === "aberta") await P.salvarAvisos({ tabela: "pendencias", registroId: r.id, tipo: "dia", base: r.conferir_em, valor: _avisos,
+          usuarioId: r.acompanha_id, titulo: "Pendência: " + r.descricao, corpo: `${p.codigo} · ${p.titulo} — quem age: ${P.quemAgeTexto(r)}` });
+        return r;
       },
       aoExcluir: x ? () => P.excluir("pendencias", x.id, [ "pendencias" ]) : null,
     }).then(() => P.redesenhar());
@@ -417,7 +461,9 @@
       aoExcluir: x ? () => P.excluir("protocolos", x.id, [ "protocolos", "exigencias", "documentos" ]) : null,
     }).then(() => P.redesenhar());
   }
-  function formExigencia(prot, x) {
+  async function formExigencia(prot, x) {
+    const av = await P.avisosIniciais("exigencias", x?.id, "dia");
+    const sv = P.porId("servicos", prot.servico_id); const pj = P.porId("projetos", sv?.projeto_id);
     return P.form({
       titulo: x ? "Editar exigência" : "Nova exigência", subtitulo: `Protocolo ${prot.numero || "—"} · ${prot.orgao_nome || P.R.orgao[prot.orgao]}`, campos: [
         { id: "descricao", rotulo: "O que o órgão pediu", tipo: "textarea", obrig: true },
@@ -425,12 +471,17 @@
         { id: "prazo", rotulo: "Prazo para cumprir", tipo: "date" },
         { id: "situacao", rotulo: "Situação", tipo: "select", opcoes: P.opcoes(P.R.sitExigencia), vazio: false },
         { id: "cumprida_em", rotulo: "Cumprida em", tipo: "date" },
+        P.campoAvisos("dia", "Avisar no celular (pelo prazo)"),
       ],
-      valores: x || { recebida_em: P.hojeISO(), situacao: "aberta" },
+      valores: { ...(x || { recebida_em: P.hojeISO(), situacao: "aberta" }), _avisos: { ...av, chaves: x ? av.chaves : (av.chaves.length ? [ "3d", "1d", "dia" ] : []) } },
       aoSalvar: async (v) => {
-        if (v.situacao === "cumprida" && !v.cumprida_em) v.cumprida_em = P.hojeISO();
-        const r = await P.salvar("exigencias", { ...v, protocolo_id: prot.id, id: x?.id, version: x?.version });
-        if (!x && v.situacao === "aberta" && prot.situacao === "em_analise") await P.salvar("protocolos", { id: prot.id, version: prot.version, situacao: "exigencia" });
+        const { _avisos, ...d } = v;
+        if (d.situacao === "cumprida" && !d.cumprida_em) d.cumprida_em = P.hojeISO();
+        const r = await P.salvar("exigencias", { ...d, protocolo_id: prot.id, id: x?.id, version: x?.version });
+        if (!x && d.situacao === "aberta" && prot.situacao === "em_analise") await P.salvar("protocolos", { id: prot.id, version: prot.version, situacao: "exigencia" });
+        if (r.situacao === "aberta") await P.salvarAvisos({ tabela: "exigencias", registroId: r.id, tipo: "dia", base: r.prazo, valor: _avisos,
+          usuarioId: sv?.responsavel_id || pj?.responsavel_id, titulo: "Exigência: " + r.descricao,
+          corpo: `${pj?.codigo || ""} · ${prot.orgao_nome || P.R.orgao[prot.orgao]} nº ${prot.numero || "—"} — prazo ${P.dataBR(r.prazo)}` });
         return r;
       },
       aoExcluir: x ? () => P.excluir("exigencias", x.id, [ "exigencias" ]) : null,
@@ -539,7 +590,7 @@
   }
 
   // ---------- financeiro do processo ----------
-  P.formRecebivel = (projetoId, x) => P.form({
+  P.formRecebivel = async (projetoId, x) => { const av = await P.avisosIniciais("recebiveis", x?.id, "dia"); return P.form({
     titulo: x ? "Editar parcela" : "Nova parcela a receber", campos: [
       ...(projetoId ? [] : [ { id: "projeto_id", rotulo: "Processo", tipo: "select", obrig: true, opcoes: () => (P.dados.projetos || []).map((p) => [ p.id, `${p.codigo} · ${p.titulo}` ]) } ]),
       { id: "descricao", rotulo: "Descrição (marco)", obrig: true, placeholder: "Ex.: Entrada, Entrega da planta, Certificação" },
@@ -553,14 +604,20 @@
       { id: "conta_id", rotulo: "Conta", tipo: "select", opcoes: () => (P.dados.contas || []).filter((c) => c.ativo).map((c) => [ c.id, c.nome ]) },
       { id: "nota_id", rotulo: "Nota fiscal", tipo: "select", opcoes: () => (P.dados.notas || []).filter((n) => !projetoId || n.projeto_id === projetoId).map((n) => [ n.id, `NF ${n.numero} — ${P.moeda(n.valor)}` ]) },
       { id: "observacoes", rotulo: "Observações", tipo: "textarea" },
+      P.campoAvisos("dia", "Avisar no celular (pelo vencimento)"),
     ],
-    valores: x || { situacao: "aberto" },
-    aoSalvar: (v) => {
-      if (v.situacao === "recebido") { v.recebido_em = v.recebido_em || P.hojeISO(); if (v.valor_recebido == null) v.valor_recebido = v.valor; }
-      return P.salvar("recebiveis", { ...v, projeto_id: v.projeto_id || projetoId, id: x?.id, version: x?.version });
+    valores: { ...(x || { situacao: "aberto" }), _avisos: av },
+    aoSalvar: async (v) => {
+      const { _avisos, ...d } = v;
+      if (d.situacao === "recebido") { d.recebido_em = d.recebido_em || P.hojeISO(); if (d.valor_recebido == null) d.valor_recebido = d.valor; }
+      const r = await P.salvar("recebiveis", { ...d, projeto_id: d.projeto_id || projetoId, id: x?.id, version: x?.version });
+      const pj = P.porId("projetos", r.projeto_id);
+      if (r.situacao === "aberto") await P.salvarAvisos({ tabela: "recebiveis", registroId: r.id, tipo: "dia", base: r.vencimento, valor: _avisos,
+        usuarioId: P.estado.usuario.id, titulo: `A receber: ${r.descricao} — ${P.moeda(r.valor)}`, corpo: `${pj?.codigo || ""} · ${pj?.titulo || ""} — vence ${P.dataBR(r.vencimento)}` });
+      return r;
     },
     aoExcluir: x ? () => P.excluir("recebiveis", x.id, [ "recebiveis" ]) : null,
-  }).then(() => P.redesenhar());
+  }).then(() => P.redesenhar()); };
   P.formBaixa = (x) => P.form({
     titulo: "Registrar recebimento", subtitulo: `${x.descricao} · ${P.moeda(x.valor)}`, campos: [
       { id: "recebido_em", rotulo: "Recebido em", tipo: "date", obrig: true },

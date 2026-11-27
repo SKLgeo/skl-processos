@@ -3,7 +3,7 @@
 // configuracoes.js, tutoriais.js, busca.js) e se registra com P.pagina(...).
 (() => {
   "use strict";
-  const APP_VERSION = "1.0.0";
+  const APP_VERSION = "1.1.0";
   const CFG = window.SKL_PROC_CONFIG;
   const NO_PC = !!window.sklDesktop;
   const LINK = CFG.link || "";
@@ -203,14 +203,21 @@
       let entrada = "";
       if (c.tipo === "textarea") entrada = `<textarea name="${c.id}" rows="${c.linhas || 3}" ${req}>${esc(v)}</textarea>`;
       else if (c.tipo === "select") {
+        const ops = (c.opcoesPor ? c.opcoesPor(valores[c.dependeDe], false) : (typeof c.opcoes === "function" ? c.opcoes() : c.opcoes)) || [];
+        entrada = `<select name="${c.id}" ${req}>${P.opcoesHtml(c, ops, v)}</select>`;
+      } else if (c.tipo === "avisos" || c.tipo === "checks") {
+        const v0 = c.tipo === "avisos" ? (v || {}) : { chaves: Array.isArray(v) ? v : [] };
+        const marcadas = new Set((v0.chaves || []).map(String));
         const ops = (typeof c.opcoes === "function" ? c.opcoes() : c.opcoes) || [];
-        entrada = `<select name="${c.id}" ${req}>${c.vazio !== false ? `<option value="">${esc(c.vazio || "—")}</option>` : ""}${ops.map(([ ov, ol ]) => `<option value="${esc(ov)}" ${String(ov) === String(v) ? "selected" : ""}>${esc(ol)}</option>`).join("")}</select>`;
+        entrada = `<div class="grupo-checks">${ops.map(([ k, l ]) => `<label class="check"><input type="checkbox" name="${c.id}" value="${esc(k)}" ${marcadas.has(String(k)) ? "checked" : ""}> ${esc(l)}</label>`).join("") || `<span class="sub">—</span>`}
+          ${c.comHora ? `<span class="avisos-hora">às <input type="time" name="${c.id}_hora" value="${esc(v0.hora || "08:00")}"></span>` : ""}</div>`;
       } else if (c.tipo === "checkbox") entrada = `<span class="check"><input type="checkbox" name="${c.id}" ${v ? "checked" : ""}> ${esc(c.texto || "")}</span>`;
       else if (c.tipo === "datetime") {
         let vv = ""; if (v) { const dt = new Date(v); dt.setMinutes(dt.getMinutes() - dt.getTimezoneOffset()); vv = dt.toISOString().slice(0, 16); }
         entrada = `<input type="datetime-local" name="${c.id}" value="${vv}" ${req}>`;
       } else entrada = `<input type="${c.tipo === "number" ? "number" : c.tipo || "text"}" ${c.tipo === "number" ? `step="${c.passo || "any"}"` : ""} name="${c.id}" value="${esc(c.tipo === "date" ? String(v).slice(0, 10) : v)}" ${req} ${c.placeholder ? `placeholder="${esc(c.placeholder)}"` : ""}>`;
-      return `<label class="${larg}">${esc(c.rotulo)}${c.obrig ? " *" : ""}${entrada}${c.ajuda ? `<small>${esc(c.ajuda)}</small>` : ""}</label>`;
+      const tag = c.tipo === "avisos" || c.tipo === "checks" ? "div" : "label";
+      return `<${tag} class="campo ${larg} ${c.tipo === "avisos" ? "inteira campo-avisos" : ""}">${c.tipo === "avisos" ? "🔔 " : ""}${esc(c.rotulo)}${c.obrig ? " *" : ""}${entrada}${c.ajuda ? `<small>${esc(c.ajuda)}</small>` : ""}</${tag}>`;
     }).join("");
     d.innerHTML = `<form method="dialog" class="form-corpo">
       <header><h2>${esc(titulo)}</h2>${subtitulo ? `<p class="ajuda">${esc(subtitulo)}</p>` : ""}</header>
@@ -223,6 +230,14 @@
         <button type="submit" class="botao-principal" data-f="salvar">${esc(salvarTexto)}</button>
       </footer></form>`;
     document.body.appendChild(d);
+    // lista que depende de outro campo (ex.: imóveis do cliente escolhido), com "Mostrar todos…"
+    for (const c of campos.filter((x) => x.dependeDe && x.opcoesPor)) {
+      const pai = d.querySelector(`[name="${c.dependeDe}"]`), filho = d.querySelector(`select[name="${c.id}"]`);
+      if (!pai || !filho) continue;
+      const refazer = (todos) => { const atual = filho.value === "__todos" ? "" : filho.value; filho.innerHTML = P.opcoesHtml(c, c.opcoesPor(pai.value, todos) || [], atual); };
+      pai.addEventListener("change", () => refazer(false));
+      filho.addEventListener("change", () => { if (filho.value === "__todos") refazer(true); });
+    }
     const fechar = (r) => { d.close(); d.remove(); resolve(r); };
     const erro = d.querySelector(".erro");
     d.addEventListener("cancel", (e) => { e.preventDefault(); fechar(null); });
@@ -237,6 +252,11 @@
       for (const c of campos) {
         if (c.tipo === "titulo") continue;
         const el = f.elements[c.id];
+        if (c.tipo === "avisos" || c.tipo === "checks") {
+          const chaves = [ ...f.querySelectorAll(`input[name="${c.id}"]:checked`) ].map((i) => i.value);
+          out[c.id] = c.tipo === "checks" ? chaves : { chaves, hora: f.querySelector(`[name="${c.id}_hora"]`)?.value || "08:00" };
+          continue;
+        }
         if (c.tipo === "checkbox") out[c.id] = el.checked;
         else if (c.tipo === "number") out[c.id] = el.value === "" ? null : Number(el.value);
         else if (c.tipo === "datetime") out[c.id] = el.value ? new Date(el.value).toISOString() : null;
@@ -249,6 +269,8 @@
     d.showModal();
     d.querySelector("input,select,textarea")?.focus();
   });
+
+  P.opcoesHtml = (c, ops, v) => `${c.vazio !== false ? `<option value="">${esc(c.vazio || "—")}</option>` : ""}${ops.map(([ ov, ol ]) => `<option value="${esc(ov)}" ${String(ov) === String(v ?? "") ? "selected" : ""}>${esc(ol)}</option>`).join("")}`;
 
   // listas de opções usadas nos formulários
   P.opPessoas = () => (P.dados.pessoas || []).slice().sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")).map((p) => [ p.id, p.nome + (p.apelido ? ` (${p.apelido})` : "") ]);
@@ -397,6 +419,7 @@
     if (canal) { sb.removeChannel(canal); canal = null; }
     await sb.auth.signOut({ scope: "local" }).catch(() => {});
     P.estado.usuario = null; P.estado.escritorio = null; P.dados = {};
+    document.dispatchEvent(new CustomEvent("skl-proc-saiu"));
     mostrar("loginView");
   }
   P.sair = sair;
@@ -411,7 +434,7 @@
     if (!session) { mostrar("loginView"); return; }
     P.estado.usuario = session.user;
     const { data, error } = await sb.from("proc_escritorio_usuarios")
-      .select("escritorio_id, papel, proc_escritorios(id, nome, ativo, config, cidade, uf, cnpj)")
+      .select("escritorio_id, papel, proc_escritorios(id, nome, ativo, config, funcoes, cidade, uf, cnpj)")
       .eq("usuario_id", session.user.id).eq("ativo", true);
     if (error) {
       if (/fetch|network|Failed/i.test(error.message)) { erroLogin("Sem conexão com o servidor. Tentando de novo…"); mostrar("loginView"); setTimeout(entrar, 8000); return; }
@@ -457,6 +480,12 @@
     try { await P.carregar(); } catch (e) { $("paginas").innerHTML = P.vazio("Não carregou os dados: " + P.msgErro(e)); return; }
     ligarTempoReal();
     P.ir("hoje");
+    document.dispatchEvent(new CustomEvent("skl-proc-entrou"));
+    // aberto por um alerta do celular (…/?projeto=<id>): vai direto ao processo
+    try {
+      const pid = new URLSearchParams(location.search).get("projeto");
+      if (pid && P.porId("projetos", pid)) { P.abrirProjeto(pid); history.replaceState(history.state, "", location.pathname); }
+    } catch { /* file: */ }
   }
   P.iniciar = async () => {
     try {

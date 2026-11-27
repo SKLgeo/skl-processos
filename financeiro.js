@@ -3,6 +3,7 @@
   "use strict";
   const P = window.SKLProc; const { esc } = P;
   let aba = "resumo"; const filtro = { rec: "aberto", custas: "acobrar", busca: "" };
+  P.abrirFinanceiro = (rec) => { aba = "receber"; filtro.rec = rec || "aberto"; filtro.busca = ""; P.ir("financeiro"); };
   const nomeProj = (id) => { const p = P.porId("projetos", id); return p ? `${p.codigo} · ${p.titulo}` : "—"; };
   const soma = (arr, f) => arr.reduce((s, x) => s + Number(f(x) || 0), 0);
 
@@ -31,11 +32,12 @@
       <div class="cartao"><h3>Vencidas</h3>${vencido.length ? `<ul class="lista-itens">${vencido.sort((a, b) => a.vencimento.localeCompare(b.vencimento)).map((r) => `<li class="clicavel" data-proc="${r.projeto_id}"><div><div class="titulo">${esc(r.descricao)} · ${esc(P.moeda(r.valor))}</div><div class="sub">${esc(nomeProj(r.projeto_id))} · ${esc(P.clienteDe(P.porId("projetos", r.projeto_id))?.nome || "")}</div></div><div class="quando atrasado">${esc(P.quando(r.vencimento).txt)}${r.programado_para ? `<br><small>prometido ${esc(P.dataBR(r.programado_para))}</small>` : ""}</div></li>`).join("")}</ul>` : P.vazio("Nada vencido.")}</div>`;
   }
   function aReceber() {
-    const lista = (P.dados.recebiveis || []).filter((r) => (filtro.rec === "todos" || r.situacao === filtro.rec) && P.contem(`${r.descricao} ${nomeProj(r.projeto_id)} ${P.clienteDe(P.porId("projetos", r.projeto_id))?.nome || ""}`, filtro.busca))
+    const hoje = P.hojeISO();
+    const lista = (P.dados.recebiveis || []).filter((r) => (filtro.rec === "todos" || (filtro.rec === "vencidas" ? r.situacao === "aberto" && r.vencimento && r.vencimento < hoje : r.situacao === filtro.rec)) && P.contem(`${r.descricao} ${nomeProj(r.projeto_id)} ${P.clienteDe(P.porId("projetos", r.projeto_id))?.nome || ""}`, filtro.busca))
       .sort((a, b) => (filtro.rec === "recebido" ? (b.recebido_em || "").localeCompare(a.recebido_em || "") : (a.vencimento || "9").localeCompare(b.vencimento || "9")));
     const gerir = P.pode("gerir_financeiro");
     return `<div class="barra-filtros"><input type="search" id="finBusca" placeholder="Processo, cliente, descrição…" value="${esc(filtro.busca)}">
-      <select id="finRec"><option value="aberto" ${filtro.rec === "aberto" ? "selected" : ""}>A receber</option><option value="recebido" ${filtro.rec === "recebido" ? "selected" : ""}>Recebidas</option><option value="todos" ${filtro.rec === "todos" ? "selected" : ""}>Todas</option></select>
+      <select id="finRec"><option value="aberto" ${filtro.rec === "aberto" ? "selected" : ""}>A receber</option><option value="vencidas" ${filtro.rec === "vencidas" ? "selected" : ""}>Só as vencidas</option><option value="recebido" ${filtro.rec === "recebido" ? "selected" : ""}>Recebidas</option><option value="todos" ${filtro.rec === "todos" ? "selected" : ""}>Todas</option></select>
       <span class="espaco"></span><strong>Total: ${esc(P.moeda(soma(lista, (r) => r.situacao === "recebido" ? (r.valor_recebido ?? r.valor) : r.valor)))}</strong>
       ${gerir ? `<button type="button" class="botao-principal" data-a="novaParcela">+ Parcela</button>` : ""}</div>
       <div class="cartao"><div class="tabela-rol"><table class="tabela"><thead><tr><th>Processo / cliente</th><th>Descrição</th><th>Vencimento</th><th>Valor</th><th>Situação</th><th></th></tr></thead><tbody>

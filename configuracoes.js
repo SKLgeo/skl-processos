@@ -138,14 +138,17 @@
     }
   }
 
-  function render(el) {
-    const abas = [ [ "computador", "Este computador" ], [ "escritorio", "Escritório" ], [ "equipe", "Equipe" ], [ "modelos", "Modelos de etapas" ],
+  function render(el, param) {
+    if (param?.aba) { aba = param.aba; P.estado.param = null; }
+    const abas = [ [ "computador", "Este computador" ], [ "avisos", "Avisos" ], [ "escritorio", "Escritório" ], [ "equipe", "Equipe" ], [ "modelos", "Modelos de etapas" ],
       ...(P.pode("ver_financeiro") ? [ [ "contas", "Contas" ] ] : []) ];
     if (!abas.some(([ k ]) => k === aba)) aba = "computador";
     el.innerHTML = `<div class="abas">${abas.map(([ k, t ]) => `<button type="button" data-aba="${k}" class="${k === aba ? "ativo" : ""}">${t}</button>`).join("")}</div>
-      ${{ computador, escritorio, equipe, modelos, contas }[aba]()}`;
+      <div id="cfgCorpo">${aba === "avisos" ? "" : { computador, escritorio, equipe, modelos, contas }[aba]()}</div>`;
+    if (aba === "avisos") { P.renderConfigAvisos(el.querySelector("#cfgCorpo")); }
     el.onclick = async (e) => {
       const t = e.target.closest("[data-aba]"); if (t) { aba = t.dataset.aba; render(el); return; }
+      if (aba === "avisos") return; // a aba Avisos trata os próprios cliques
       const b = e.target.closest("[data-a]"); if (!b) return;
       try { await acao(b.dataset.a, b.dataset.id); } catch (err) { P.toast(P.msgErro(err)); }
     };

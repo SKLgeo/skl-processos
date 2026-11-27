@@ -4,7 +4,7 @@
   const P = window.SKLProc; const { esc } = P;
   let soMeus = false;
 
-  P.formCompromisso = (c, pre = {}) => P.form({
+  P.formCompromisso = async (c, pre = {}) => { const av = await P.avisosIniciais("compromissos", c?.id, "hora"); return P.form({
     titulo: c ? "Editar compromisso" : "Novo compromisso", campos: [
       { id: "titulo", rotulo: "O que é", obrig: true, largura: "inteira", placeholder: "Ex.: Campo GNSS, ida ao cartório, reunião com o cliente" },
       { id: "tipo", rotulo: "Tipo", tipo: "select", opcoes: P.opcoes(P.R.tipoComp), vazio: false },
@@ -15,11 +15,20 @@
       { id: "responsavel_id", rotulo: "Quem vai", tipo: "select", opcoes: P.opEquipe },
       ...(c ? [ { id: "situacao", rotulo: "Situação", tipo: "select", opcoes: P.opcoes(P.R.sitComp), vazio: false } ] : []),
       { id: "observacoes", rotulo: "Observações", tipo: "textarea" },
+      P.campoAvisos("hora", "Avisar no celular"),
     ],
-    valores: c || { tipo: "campo", responsavel_id: P.estado.usuario.id, ...pre },
-    aoSalvar: (v) => P.salvar("compromissos", { ...v, id: c?.id, version: c?.version, servico_id: c?.servico_id && v.projeto_id === c.projeto_id ? c.servico_id : null }),
+    valores: { ...(c || { tipo: "campo", responsavel_id: P.estado.usuario.id, ...pre }), _avisos: av },
+    aoSalvar: async (v) => {
+      const { _avisos, ...d } = v;
+      const r = await P.salvar("compromissos", { ...d, id: c?.id, version: c?.version, servico_id: c?.servico_id && d.projeto_id === c.projeto_id ? c.servico_id : null });
+      const pj = P.porId("projetos", r.projeto_id); const ini = new Date(r.inicio);
+      if (r.situacao === "agendado") await P.salvarAvisos({ tabela: "compromissos", registroId: r.id, tipo: "hora", base: r.inicio, valor: _avisos,
+        usuarioId: r.responsavel_id, titulo: `${P.R.tipoComp[r.tipo] || "Compromisso"}: ${r.titulo}`,
+        corpo: `${ini.toLocaleDateString("pt-BR")} ${ini.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}${r.local ? " — " + r.local : ""}${pj ? " · " + pj.codigo : ""}` });
+      return r;
+    },
     aoExcluir: c ? () => P.excluir("compromissos", c.id, [ "compromissos" ]) : null,
-  }).then(() => P.redesenhar());
+  }).then(() => P.redesenhar()); };
 
   function itens() {
     const D = P.dados; const eu = P.estado.usuario.id; const ini = P.somarDias(P.hojeISO(), -60); const fim = P.somarDias(P.hojeISO(), 90);
