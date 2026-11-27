@@ -147,7 +147,7 @@
         P.toast("🔔 " + (a.titulo || "Novo aviso"), 6000);
         // no programa do Windows (sem service worker) o alerta sai daqui, com o programa aberto
         if (P.NO_PC && typeof Notification !== "undefined" && Notification.permission === "granted") {
-          const n = new Notification(a.titulo || "SKL Processos", { body: a.corpo || "", icon: "icone.png" });
+          const n = new Notification(a.titulo || P.marcaAtual?.nome || "Aviso", { body: a.corpo || "", icon: P.marcaAtual?.logo || "icone.png" });
           n.onclick = () => { window.focus(); if (a.projeto_id) P.abrirProjeto(a.projeto_id); };
         }
       }).subscribe();

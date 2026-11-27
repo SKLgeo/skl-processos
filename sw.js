@@ -4,11 +4,11 @@ self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (e) => {
   let m = {};
-  try { m = e.data ? e.data.json() : {}; } catch { m = { titulo: "SKL Processos", corpo: e.data ? e.data.text() : "" }; }
+  try { m = e.data ? e.data.json() : {}; } catch { m = { titulo: "Aviso", corpo: e.data ? e.data.text() : "" }; }
   const url = (m.dados && m.dados.url) || self.registration.scope;
-  e.waitUntil(self.registration.showNotification(m.titulo || "SKL Processos", {
-    body: m.corpo || "",
-    icon: "icone.png",
+  e.waitUntil(self.registration.showNotification(m.titulo || m.escritorio || "Aviso", {
+    body: (m.escritorio ? m.escritorio + " · " : "") + (m.corpo || ""),
+    icon: m.icone || "icone.png",
     badge: "icone.png",
     tag: m.id || undefined,
     requireInteraction: true,

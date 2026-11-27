@@ -3,7 +3,7 @@
 // configuracoes.js, tutoriais.js, busca.js) e se registra com P.pagina(...).
 (() => {
   "use strict";
-  const APP_VERSION = "1.1.0";
+  const APP_VERSION = "1.2.0";
   const CFG = window.SKL_PROC_CONFIG;
   const NO_PC = !!window.sklDesktop;
   const LINK = CFG.link || "";
@@ -368,7 +368,7 @@
   // ---------------- entrada ----------------
   function mostrar(view) { for (const v of [ "loginView", "escolhaView", "appView" ]) $(v).hidden = v !== view; }
   $("versaoLogin").textContent = "v" + APP_VERSION;
-  $("versaoApp").textContent = "SKL Processos v" + APP_VERSION;
+  $("versaoApp").textContent = "v" + APP_VERSION + " · tecnologia SKL";
   $("loginEmail").value = lerLocal("skl_proc_ultimo_email");
   $("loginVerSenha").addEventListener("click", () => {
     const i = $("loginSenha"); const ver = i.type === "password";
@@ -444,7 +444,7 @@
       .map((r) => ({ ...r.proc_escritorios, papel: r.papel }))
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
     if (!P.estado.escritorios.length) {
-      erroLogin("Seu login não tem acesso a nenhum escritório no SKL Processos.");
+      erroLogin("Seu login não tem acesso a nenhum escritório neste sistema.");
       await sb.auth.signOut({ scope: "local" }); mostrar("loginView"); return;
     }
     const guardado = P.estado.escritorios.find((x) => x.id === lerLocal("skl_proc_escritorio"));

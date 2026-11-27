@@ -71,7 +71,7 @@
     return `<div class="barra-filtros"><input type="search" id="finBusca" placeholder="Número, processo, tomador…" value="${esc(filtro.busca)}"><span class="espaco"></span>
       <strong>Total emitido: ${esc(P.moeda(soma(lista.filter((n) => n.situacao === "emitida"), (n) => n.valor)))}</strong>
       ${gerir ? `<button type="button" class="botao-principal" data-a="novaNota">+ Nota</button>` : ""}</div>
-      <div class="cartao"><p class="ajuda">Registro das notas já emitidas (no sistema da prefeitura ou pelo contador). O SKL Processos não emite nota.</p>
+      <div class="cartao"><p class="ajuda">Registro das notas já emitidas (no sistema da prefeitura ou pelo contador). O sistema não emite nota.</p>
       <div class="tabela-rol"><table class="tabela"><thead><tr><th>Nº</th><th>Emitida</th><th>Tomador</th><th>Processo</th><th>Valor</th><th></th></tr></thead><tbody>
       ${lista.map((n) => `<tr class="${n.situacao === "cancelada" ? "feito" : ""}"><td>${esc(n.numero)}${n.serie ? "/" + esc(n.serie) : ""}${n.situacao === "cancelada" ? "<br><small>cancelada</small>" : ""}</td><td>${esc(P.dataBR(n.emitida_em))}</td>
         <td>${esc(P.porId("pessoas", n.cliente_id)?.nome || "—")}</td><td>${n.projeto_id ? `<a href="#" data-a="proc" data-id="${n.projeto_id}">${esc(nomeProj(n.projeto_id))}</a>` : "—"}</td>

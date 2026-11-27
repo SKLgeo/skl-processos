@@ -4,7 +4,7 @@
   const P = window.SKLProc; const { esc } = P;
   const T = [
     { t: "Primeiro: o programa só funciona se for alimentado", p: [
-      "O SKL Processos é uma ferramenta de gestão e acompanhamento. Ele não faz o processo andar sozinho: mostra o que precisa ser feito, por quem e quando.",
+      "O sistema é uma ferramenta de gestão e acompanhamento. Ele não faz o processo andar sozinho: mostra o que precisa ser feito, por quem e quando.",
       "Regra de ouro: toda vez que algo acontecer (protocolou, voltou exigência, cliente mandou documento, confrontante assinou), registre no processo. Leva segundos.",
       "O programa não guarda arquivos. Plantas, DWG, matrículas e memoriais continuam nas pastas do seu computador; aqui fica onde cada coisa está.",
     ] },
@@ -48,13 +48,37 @@
     ] },
     { t: "Busca", p: [ "O campo de busca no topo (ou Ctrl+K) acha processo, imóvel, pessoa, matrícula e protocolo. Ignora acento e aceita erro de digitação." ] },
     { t: "Equipe e acessos", p: [
-      "Configurações → Equipe → + Criar acesso. Tipos: Administrador (tudo), Técnico (processos, sem financeiro), Financeiro (financeiro e custas), Consulta (só vê).",
-      "Quem esquecer a senha usa \"Esqueci minha senha\" na tela de entrada.",
+      "Configurações → Equipe → + Criar acesso. Preencha nome, e-mail, tipo de acesso e uma senha inicial.",
+      "Use o e-mail de verdade da pessoa: é com ele que ela entra e é para ele que vai o e-mail do dia (quando o setor não tem e-mail próprio).",
+      "Tipos: Administrador (tudo), Técnico (processos, sem financeiro), Financeiro (financeiro e custas), Consulta (só vê).",
+      "Quem esquecer a senha usa \"Esqueci minha senha\" na tela de entrada. O administrador também pode usar \"nova senha\" na lista da equipe.",
       "Tudo que um computador altera aparece nos outros na hora (bolinha verde no topo = conectado).",
+    ] },
+    { t: "Marca do escritório (nome, logo e cores)", p: [
+      "Configurações → Escritório → Marca do escritório. Só o administrador altera.",
+      "Escreva o nome que deve aparecer, toque em \"Escolher logo\" (PNG com fundo transparente fica melhor) e escolha a cor principal e a cor de destaque. O quadro ao lado mostra como vai ficar.",
+      "Toque em \"Salvar marca\". O nome, a logo e as cores passam a aparecer na tela de todos, no e-mail do dia e nos alertas do celular. Quem estiver com o sistema aberto vê a marca nova ao entrar de novo.",
+      "Prefira uma cor principal escura: o texto do menu e dos botões é branco.",
+    ] },
+    { t: "Avisos no celular", p: [
+      "Ligue os avisos em cada aparelho que você usa: Configurações → Avisos → \"Ativar avisos neste aparelho\" e permita as notificações. Depois toque em \"Enviar um aviso de teste\": em até 1 minuto o alerta aparece.",
+      "No iPhone, primeiro adicione o link à tela de início (Safari → Compartilhar → Adicionar à Tela de Início) e abra o sistema por esse ícone.",
+      "Ao cadastrar uma pendência, compromisso, exigência, etapa, parcela ou vencimento de licença, use o campo \"Avisar no celular\" para escolher quando ser avisado e o horário.",
+      "O alerta vai para quem é responsável pelo item. Os avisos também ficam no sino 🔔 do topo.",
+      "Item resolvido ou cancelado não avisa mais. O aviso de vencimento de licença continua valendo mesmo com o serviço concluído.",
+    ] },
+    { t: "E-mail do dia e setores", p: [
+      "Todo dia útil às 7h sai um e-mail por setor com o que cada pessoa tem para o dia: pendências, compromissos, exigências, etapas e vencimentos.",
+      "Configurações → Avisos → Setores → + Setor. Dê o nome (ex.: Geo, Ambiental, Financeiro) e marque as pessoas do setor.",
+      "Setor com e-mail próprio (ex.: geo@seuescritorio.com.br) recebe uma vez só nesse endereço. Sem e-mail próprio, cada pessoa do setor recebe o resumo no e-mail com que entra no sistema.",
+      "Marque \"Financeiro\" no setor que deve receber também as parcelas a receber.",
+      "Em \"E-mail para respostas\" coloque o e-mail do escritório: quem responder o resumo fala com ele.",
+      "\"Ver o resumo de hoje\" mostra o que vai sair. \"Enviar o resumo de hoje para um e-mail de teste\" manda para o e-mail que você escolher.",
+      "Se o primeiro e-mail cair no spam, marque \"Não é spam\" e adicione o remetente aos contatos.",
     ] },
   ];
   function render(el) {
-    el.innerHTML = `<div class="cartao"><p class="ajuda">Passo a passo rápido de cada parte do SKL Processos. Dúvidas: contato@sklgeosolucoes.com.br · (66) 99273-7646.</p></div>
+    el.innerHTML = `<div class="cartao"><p class="ajuda">Passo a passo rápido de cada parte do sistema. Suporte: contato@sklgeosolucoes.com.br · (66) 99273-7646.</p></div>
       ${T.map((x, i) => `<details class="cartao tutorial" ${i === 0 ? "open" : ""}><summary>${esc(x.t)}</summary><ol>${x.p.map((l) => `<li>${esc(l)}</li>`).join("")}</ol></details>`).join("")}`;
   }
   P.pagina("tutoriais", { titulo: "Tutoriais", render });

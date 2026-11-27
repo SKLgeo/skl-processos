@@ -585,7 +585,7 @@
         </tbody></table></div>`;
     }).join("");
     el.innerHTML = `<div class="cartao"><div class="cartao-cab"><h3>Documentos e versões</h3>${pode && servs.length ? `<button type="button" class="botao-principal" data-a="novoDoc">+ Documento</button>` : ""}</div>
-      <p class="ajuda">O SKL Processos não guarda arquivos: registra a versão, a situação e onde o arquivo está na pasta do processo.</p>
+      <p class="ajuda">O sistema não guarda arquivos: registra a versão, a situação e onde o arquivo está na pasta do processo.</p>
       ${blocos || P.vazio("Nenhum documento registrado.")}</div>`;
   }
 

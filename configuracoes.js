@@ -9,13 +9,13 @@
     return `<div class="cartao"><h3>Pasta raiz deste computador</h3>
       <p class="ajuda">É a pasta onde ficam as pastas dos processos (por exemplo <code>G:\\Meu Drive\\PROCESSOS</code> ou <code>\\\\SERVIDOR\\Processos</code>).
       Cada processo guarda só o nome da pasta dele; o programa junta com esta pasta raiz para abrir. Cada computador configura a sua.
-      O SKL Processos não guarda nem lê seus arquivos: só abre a pasta no Explorer.</p>
+      O sistema não guarda nem lê seus arquivos: só abre a pasta no Explorer.</p>
       ${desk ? `<div class="linha"><input id="pastaRaiz" type="text" placeholder="Ex.: G:\\Meu Drive\\PROCESSOS" spellcheck="false" value="${esc(P.pastaRaiz())}">
         <button type="button" class="botao" data-a="escolher">Escolher…</button><button type="button" class="botao-principal" data-a="salvarPasta">Salvar</button>
         <button type="button" class="botao" data-a="testarPasta">Abrir</button></div>`
       : `<p class="aviso">Abrir pastas só funciona no programa instalado no computador. Pelo navegador ou celular, o caminho da pasta aparece só para consulta.</p>`}
     </div>
-    <div class="cartao"><h3>Sobre</h3><p class="ajuda">SKL Processos v${P.APP_VERSION} · SKL Soluções Digitais · contato@sklgeosolucoes.com.br · (66) 99273-7646</p>
+    <div class="cartao"><h3>Sobre</h3><p class="ajuda">Sistema de gestão de processos v${P.APP_VERSION} · suporte SKL Soluções Digitais · contato@sklgeosolucoes.com.br · (66) 99273-7646</p>
       ${P.LINK ? `<p class="ajuda">Acesso pela internet (celular ou outro computador): <a href="${esc(P.LINK)}" target="_blank" rel="noopener">${esc(P.LINK)}</a></p>` : ""}</div>`;
   }
   function escritorio() {
@@ -23,7 +23,8 @@
     return `<div class="cartao"><h3>Dados do escritório</h3>
       <div class="ficha-info"><div><span>Nome</span>${esc(e.nome)}</div><div><span>CNPJ</span>${esc(e.cnpj || "—")}</div><div><span>Cidade</span>${esc([ e.cidade, e.uf ].filter(Boolean).join("/") || "—")}</div>
       <div><span>Processo parado depois de</span>${P.limiteParado()} dias sem movimento</div></div>
-      ${pode ? `<div class="acoes"><button type="button" class="botao" data-a="editarEsc">Editar</button></div>` : ""}</div>`;
+      ${pode ? `<div class="acoes"><button type="button" class="botao" data-a="editarEsc">Editar</button></div>` : ""}</div>
+      <div id="cfgMarca"></div>`;
   }
   function equipe() {
     const pode = P.pode("configurar"); const eu = P.estado.usuario.id;
@@ -146,6 +147,7 @@
     el.innerHTML = `<div class="abas">${abas.map(([ k, t ]) => `<button type="button" data-aba="${k}" class="${k === aba ? "ativo" : ""}">${t}</button>`).join("")}</div>
       <div id="cfgCorpo">${aba === "avisos" ? "" : { computador, escritorio, equipe, modelos, contas }[aba]()}</div>`;
     if (aba === "avisos") { P.renderConfigAvisos(el.querySelector("#cfgCorpo")); }
+    if (aba === "escritorio") { P.renderConfigMarca(el.querySelector("#cfgMarca")); }
     el.onclick = async (e) => {
       const t = e.target.closest("[data-aba]"); if (t) { aba = t.dataset.aba; render(el); return; }
       if (aba === "avisos") return; // a aba Avisos trata os próprios cliques
